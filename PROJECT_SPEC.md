@@ -87,3 +87,8 @@ Any deviation from these rules must be documented with justification in this spe
 - v1.1 (February 12, 2026): Updated start_app.bat to correctly reference app.py in parent directory after reorganization
 - v1.2 (February 12, 2026): Enhanced app.py with readability/emptiness checkboxes and additional columns
 - v1.3 (February 12, 2026): Updated app.py to disable readability check by default, grouped quality checks, added document type identification checkbox
+- v1.4 (February 12, 2026): Updated app.py to conditionally show Empty/Readable columns based on checkbox selection
+- v1.5 (February 12, 2026): Updated app.py to move Reason column to last position and improve comments
+- v1.6 (February 12, 2026): Added Read Content buttons for each page and Extract Data as JSON functionality
+- v1.7 (February 12, 2026): Improved UI/UX by showing extracted content in sidebar and added JSON key extraction
+- v1.8 (February 12, 2026): Separated logic into multiple modules for better readability and maintainability

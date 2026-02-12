@@ -1,11 +1,12 @@
 import streamlit as st
+import fitz  # PyMuPDF
+import cv2
 import pytesseract
 from PIL import Image
 import numpy as np
 import pandas as pd
+import io
 import os
-from document_processor import extract_page_data
-from content_extraction import display_content_in_sidebar
 
 # IMPORTANT: Windows users should install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
 # For Windows, set the path to Tesseract executable if installed in default location
@@ -36,6 +37,262 @@ def is_tesseract_available():
         return False
 
 TESSERACT_AVAILABLE = is_tesseract_available()
+
+@st.cache_data
+def extract_page_data(file_bytes, file_name):
+    """
+    Extracts page data from uploaded file (PDF or image) and calculates quality metrics.
+
+    Args:
+        file_bytes: Bytes of the uploaded file
+        file_name: Name of the uploaded file
+
+    Returns:
+        List of dictionaries containing page data with quality metrics
+    """
+    results = []
+    
+    # Determine if file is PDF or image
+    if file_name.lower().endswith('.pdf'):
+        # Open PDF with PyMuPDF
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+
+        # Check if the PDF has any pages
+        if len(doc) == 0:
+            # Handle empty PDF - create a default result with zero ink ratio and zero confidence
+            results.append({
+                'page': 1,
+                'ink_ratio': 0.0,  # No content means zero ink ratio
+                'ocr_conf': 0.0,   # No content means zero OCR confidence
+                'image': None      # No image for empty page
+            })
+        else:
+            # Process each page
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+
+                # Render page at 2x resolution for better accuracy (approx 150-300 DPI)
+                mat = fitz.Matrix(2, 2)
+                pix = page.get_pixmap(matrix=mat)
+
+                # Convert pixmap to image
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+
+                # Convert PIL image to OpenCV format
+                img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+                # Convert to grayscale for processing
+                gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+                # Enhance image for better OCR
+                # Apply Gaussian blur to reduce noise
+                blurred = cv2.GaussianBlur(gray, (1, 1), 0)
+
+                # Apply adaptive threshold to enhance text
+                enhanced = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+                # Metric 1: Pixel density (ink ratio)
+                # Apply Otsu's thresholding to get binary image
+                _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+                # Calculate ink ratio (non-zero pixels / total pixels)
+                total_pixels = thresh.shape[0] * thresh.shape[1]
+                ink_pixels = cv2.countNonZero(thresh)
+                ink_ratio = ink_pixels / total_pixels if total_pixels > 0 else 0
+
+                # Metric 2: OCR confidence
+                if TESSERACT_AVAILABLE:
+                    try:
+                        # Try multiple PSM modes to improve text detection
+                        psm_modes = ['--psm 6', '--psm 4', '--psm 3']  # Various modes for different text layouts
+                        best_conf = 0
+
+                        for psm_mode in psm_modes:
+                            config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
+
+                            # Try OCR on original image first
+                            try:
+                                ocr_data = pytesseract.image_to_data(
+                                    gray,
+                                    output_type=pytesseract.Output.DICT,
+                                    config=config_str
+                                )
+
+                                # Filter out rows with empty text/whitespace and invalid confidence values
+                                confidences = []
+                                for i, text in enumerate(ocr_data['text']):
+                                    # Check if the text is not empty and confidence is valid (0-100)
+                                    if text.strip() and ocr_data['conf'][i] != -1:
+                                        confidences.append(ocr_data['conf'][i])
+
+                                # Calculate average confidence
+                                avg_conf = sum(confidences) / len(confidences) if confidences else 0
+
+                                # Update best confidence if this is better
+                                if avg_conf > best_conf:
+                                    best_conf = avg_conf
+
+                            except:
+                                continue
+
+                        # If still low confidence, try with enhanced image
+                        if best_conf < 10:
+                            for psm_mode in psm_modes:
+                                config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
+
+                                try:
+                                    enhanced_ocr_data = pytesseract.image_to_data(
+                                        enhanced,
+                                        output_type=pytesseract.Output.DICT,
+                                        config=config_str
+                                    )
+
+                                    enhanced_confidences = []
+                                    for i, text in enumerate(enhanced_ocr_data['text']):
+                                        # Check if the text is not empty and confidence is valid (0-100)
+                                        if text.strip() and enhanced_ocr_data['conf'][i] != -1:
+                                            enhanced_confidences.append(enhanced_ocr_data['conf'][i])
+
+                                    enhanced_avg_conf = sum(enhanced_confidences) / len(enhanced_confidences) if enhanced_confidences else 0
+
+                                    # Update best confidence if this is better
+                                    if enhanced_avg_conf > best_conf:
+                                        best_conf = enhanced_avg_conf
+
+                                except:
+                                    continue
+
+                        ocr_conf = best_conf
+
+                    except Exception as e:
+                        # If OCR fails, set confidence to 0.0 (float)
+                        ocr_conf = 0.0
+                    finally:
+                        # Ensure ocr_conf is always defined
+                        if 'ocr_conf' not in locals() and 'ocr_conf' not in globals():
+                            ocr_conf = 0.0
+                else:
+                    # If Tesseract is not available, set OCR confidence to 0.0 (float)
+                    ocr_conf = 0.0
+
+                # Store results for this page
+                results.append({
+                    'page': page_num + 1,
+                    'ink_ratio': ink_ratio,
+                    'ocr_conf': ocr_conf,
+                    'image': pil_img
+                })
+    else:
+        # Handle image files (png, jpg, jpeg)
+        pil_img = Image.open(io.BytesIO(file_bytes))
+        
+        # Convert PIL image to OpenCV format
+        img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+        # Convert to grayscale for processing
+        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+        # Enhance image for better OCR
+        # Apply Gaussian blur to reduce noise
+        blurred = cv2.GaussianBlur(gray, (1, 1), 0)
+
+        # Apply adaptive threshold to enhance text
+        enhanced = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+        # Metric 1: Pixel density (ink ratio)
+        # Apply Otsu's thresholding to get binary image
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+        # Calculate ink ratio (non-zero pixels / total pixels)
+        total_pixels = thresh.shape[0] * thresh.shape[1]
+        ink_pixels = cv2.countNonZero(thresh)
+        ink_ratio = ink_pixels / total_pixels if total_pixels > 0 else 0
+
+        # Metric 2: OCR confidence
+        if TESSERACT_AVAILABLE:
+            try:
+                # Try multiple PSM modes to improve text detection
+                psm_modes = ['--psm 6', '--psm 4', '--psm 3']  # Various modes for different text layouts
+                best_conf = 0
+
+                for psm_mode in psm_modes:
+                    config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
+
+                    # Try OCR on original image first
+                    try:
+                        ocr_data = pytesseract.image_to_data(
+                            gray,
+                            output_type=pytesseract.Output.DICT,
+                            config=config_str
+                        )
+
+                        # Filter out rows with empty text/whitespace and invalid confidence values
+                        confidences = []
+                        for i, text in enumerate(ocr_data['text']):
+                            # Check if the text is not empty and confidence is valid (0-100)
+                            if text.strip() and ocr_data['conf'][i] != -1:
+                                confidences.append(ocr_data['conf'][i])
+
+                        # Calculate average confidence
+                        avg_conf = sum(confidences) / len(confidences) if confidences else 0
+
+                        # Update best confidence if this is better
+                        if avg_conf > best_conf:
+                            best_conf = avg_conf
+
+                    except:
+                        continue
+
+                # If still low confidence, try with enhanced image
+                if best_conf < 10:
+                    for psm_mode in psm_modes:
+                        config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
+
+                        try:
+                            enhanced_ocr_data = pytesseract.image_to_data(
+                                enhanced,
+                                output_type=pytesseract.Output.DICT,
+                                config=config_str
+                            )
+
+                            enhanced_confidences = []
+                            for i, text in enumerate(enhanced_ocr_data['text']):
+                                # Check if the text is not empty and confidence is valid (0-100)
+                                if text.strip() and enhanced_ocr_data['conf'][i] != -1:
+                                    enhanced_confidences.append(enhanced_ocr_data['conf'][i])
+
+                            enhanced_avg_conf = sum(enhanced_confidences) / len(enhanced_confidences) if enhanced_confidences else 0
+
+                            # Update best confidence if this is better
+                            if enhanced_avg_conf > best_conf:
+                                best_conf = enhanced_avg_conf
+
+                        except:
+                            continue
+
+                ocr_conf = best_conf
+
+            except Exception as e:
+                # If OCR fails, set confidence to 0.0 (float)
+                ocr_conf = 0.0
+            finally:
+                # Ensure ocr_conf is always defined
+                if 'ocr_conf' not in locals() and 'ocr_conf' not in globals():
+                    ocr_conf = 0.0
+        else:
+            # If Tesseract is not available, set OCR confidence to 0.0 (float)
+            ocr_conf = 0.0
+            
+        # Store results for this image
+        results.append({
+            'page': 1,
+            'ink_ratio': ink_ratio,
+            'ocr_conf': ocr_conf,
+            'image': pil_img
+        })
+    
+    return results
 
 def main():
     st.set_page_config(
@@ -120,7 +377,7 @@ def main():
 
     # Additional document type identification check
     identify_document_type = st.sidebar.checkbox(
-        "Auto Identify Document Type -Discuss with Gusseppe",
+        "Identify Document Type -Discuss with Gusseppe",
         value=False,
         help="Check this to enable document type identification"
     )
@@ -295,9 +552,16 @@ def main():
                                             "html": html_content
                                         }
                                         
-                                        # Store current page in session state to show in sidebar
-                                        st.session_state.current_page = f"page_{page_info['page']}"
-                                        st.session_state.show_sidebar = True
+                                        # Show the HTML content in an expander
+                                        with st.expander(f"Content for Page {page_info['page']}", expanded=True):
+                                            st.markdown(html_content, unsafe_allow_html=True)
+                                            # Add download button for the content
+                                            st.download_button(
+                                                label=f"Download Content (Page {page_info['page']})",
+                                                data=text,
+                                                file_name=f"page_{page_info['page']}_content.txt",
+                                                mime="text/plain"
+                                            )
                                     except Exception as e:
                                         st.error(f"Error extracting content for Page {page_info['page']}: {str(e)}")
                                 else:
@@ -361,9 +625,16 @@ def main():
                                                 "html": html_content
                                             }
                                             
-                                            # Store current page in session state to show in sidebar
-                                            st.session_state.current_page = f"page_{page_num}"
-                                            st.session_state.show_sidebar = True
+                                            # Show the HTML content in an expander
+                                            with st.expander(f"Content for Page {page_num}", expanded=True):
+                                                st.markdown(html_content, unsafe_allow_html=True)
+                                                # Add download button for the content
+                                                st.download_button(
+                                                    label=f"Download Content (Page {page_num})",
+                                                    data=text,
+                                                    file_name=f"page_{page_num}_content.txt",
+                                                    mime="text/plain"
+                                                )
                                         except Exception as e:
                                             st.error(f"Error extracting content for Page {page_num}: {str(e)}")
                                     else:
@@ -390,14 +661,6 @@ def main():
                     st.success("JSON data ready for download!")
                 else:
                     st.warning("Please extract content first using 'Extract All Pages Content' button.")
-
-            # Sidebar for displaying content when a Read Content button is clicked
-            if 'show_sidebar' in st.session_state and st.session_state.show_sidebar and 'current_page' in st.session_state:
-                from content_extraction import display_content_in_sidebar
-                page_key = st.session_state.current_page
-                content = st.session_state.page_content[page_key] if 'page_content' in st.session_state and page_key in st.session_state.page_content else {}
-                if content:
-                    display_content_in_sidebar(page_key, content)
                 
         except Exception as e:
             st.error(f"An error occurred while processing the file: {str(e)}")
