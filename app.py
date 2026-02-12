@@ -339,23 +339,47 @@ def main():
         help="Supported formats: PDF, PNG, JPG, JPEG"
     )
     
-    # Sliders for thresholds
+    # Group quality checks under a section
+    st.sidebar.subheader("Quality Checks")
+
+    emptiness_check_enabled = st.sidebar.checkbox(
+        "Enable Emptiness Check",
+        value=True,  # Default enabled
+        help="Check this to enable emptiness validation"
+    )
+
+    readability_check_enabled = st.sidebar.checkbox(
+        "Enable Readability Check",
+        value=False,  # Default disabled
+        help="Check this to enable readability validation"
+    )
+
+    # Sliders for thresholds (only enabled when the corresponding check is enabled)
     emptiness_threshold = st.sidebar.slider(
         "Emptiness Threshold (%)",
         min_value=0.0,
         max_value=10.0,
         value=0.5,
         step=0.1,
-        help="If ink ratio is below this percentage, page is marked as empty"
+        help="If ink ratio is below this percentage, page is marked as empty",
+        disabled=not emptiness_check_enabled
     ) / 100  # Convert percentage to decimal
-    
+
     readability_threshold = st.sidebar.slider(
         "Readability Threshold (Confidence)",
         min_value=0,
         max_value=100,
         value=40,
         step=1,
-        help="If OCR confidence is below this value, page is marked as unreadable"
+        help="If OCR confidence is below this value, page is marked as unreadable",
+        disabled=not readability_check_enabled
+    )
+
+    # Additional document type identification check
+    identify_document_type = st.sidebar.checkbox(
+        "Identify Document Type",
+        value=False,
+        help="Check this to enable document type identification"
     )
     
     # Main area
@@ -377,34 +401,48 @@ def main():
             # Prepare results dataframe
             df_data = []
             invalid_pages = []
-            
+
             for page_info in page_data:
                 page_num = page_info['page']
                 ink_ratio_pct = page_info['ink_ratio'] * 100
                 ocr_conf = page_info['ocr_conf']
-                
-                # Determine status based on thresholds
+
+                # Determine emptiness and readability status based on thresholds and enabled checks
+                is_empty = False
+                is_readable = True  # Default to readable when readability check is disabled
+
+                if emptiness_check_enabled and ink_ratio_pct < emptiness_threshold * 100:
+                    is_empty = True
+
+                if readability_check_enabled:
+                    if TESSERACT_AVAILABLE:
+                        is_readable = ocr_conf >= readability_threshold
+                    else:
+                        is_readable = False  # If Tesseract is not available but readability check is enabled, mark as not readable
+                # If readability_check_enabled is False, is_readable remains True (default)
+
+                # Determine overall status based on thresholds
                 status = "Valid"
                 reason = "OK"
 
-                if ink_ratio_pct < emptiness_threshold * 100:
+                if is_empty:
                     status = "Invalid"
                     reason = "Empty page"
                     invalid_pages.append((page_info, reason))
-                elif TESSERACT_AVAILABLE and ocr_conf < readability_threshold:
-                    # Only flag as unreadable if Tesseract is available AND confidence is low
-                    # If Tesseract is not available, we can't assess readability
+                elif not is_readable:
                     status = "Invalid"
                     reason = "Low readability"
                     invalid_pages.append((page_info, reason))
-                
+
                 df_data.append({
                     'File': uploaded_file.name,
                     'Page': page_num,
                     'Status': status,
                     'Reason': reason,
                     'Ink%': f"{ink_ratio_pct:.2f}",
-                    'Conf Score': f"{ocr_conf:.2f}"
+                    'Conf Score': f"{ocr_conf:.2f}",
+                    'Empty': "Yes" if is_empty else "No",
+                    'Readable': "Yes" if is_readable else "No"
                 })
             
             # Create dataframe

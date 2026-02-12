@@ -42,8 +42,8 @@ echo.
 REM Kill any existing streamlit processes first
 call :stop_streamlit
 
-REM Change to the app directory
-cd /d "%~dp0"
+REM Change to the app directory (go up one level to project root)
+cd /d "%~dp0\.."
 
 REM Start the Streamlit app in the background
 echo Launching the app on port !APP_PORT!...
