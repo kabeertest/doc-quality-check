@@ -10,14 +10,26 @@ from utils.content_extraction import extract_text_content as _extract_text_conte
 
 def calculate_ink_ratio(image):
     warnings.warn("quality_metrics.calculate_ink_ratio is deprecated.", DeprecationWarning)
-    return _calculate_ink_ratio(image)
+    result = _calculate_ink_ratio(image)
+    # If the new function returns a tuple (value, time), return just the value for backward compatibility
+    if isinstance(result, tuple):
+        return result[0]
+    return result
 
 
 def calculate_ocr_confidence(image):
     warnings.warn("quality_metrics.calculate_ocr_confidence is deprecated.", DeprecationWarning)
-    return _calculate_ocr_confidence(image)
+    result = _calculate_ocr_confidence(image)
+    # If the new function returns a tuple (value, time), return just the value for backward compatibility
+    if isinstance(result, tuple):
+        return result[0]
+    return result
 
 
 def extract_text_content(image):
     warnings.warn("quality_metrics.extract_text_content is deprecated.", DeprecationWarning)
-    return _extract_text_content(image)
+    result = _extract_text_content(image)
+    # If the new function returns a tuple (text, time), return just the text for backward compatibility
+    if isinstance(result, tuple):
+        return result[0]
+    return result

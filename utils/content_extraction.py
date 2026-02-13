@@ -8,6 +8,7 @@ import streamlit as st
 import cv2
 import pytesseract
 import numpy as np
+import time
 from PIL import Image
 
 
@@ -19,8 +20,10 @@ def extract_text_content(image):
         image: PIL Image object
 
     Returns:
-        str: Extracted text content
+        tuple: (text_content (str), extraction_time (float)) - Extracted text and time taken in seconds
     """
+    start_time = time.time()
+    
     # Convert PIL image to OpenCV format
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
@@ -29,8 +32,10 @@ def extract_text_content(image):
 
     # Extract text using Tesseract
     text = pytesseract.image_to_string(gray)
+    
+    extraction_time = time.time() - start_time
 
-    return text
+    return text, extraction_time
 
 
 def extract_json_keys(text):

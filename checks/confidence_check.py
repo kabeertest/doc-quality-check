@@ -5,6 +5,7 @@ Module for checking document confidence based on OCR results.
 import cv2
 import pytesseract
 import numpy as np
+import time
 from PIL import Image
 
 
@@ -16,8 +17,10 @@ def calculate_ocr_confidence(image):
         image: PIL Image object
 
     Returns:
-        float: Average OCR confidence score (0.0 to 100.0)
+        tuple: (confidence_score (float), calculation_time (float)) - Confidence score (0.0 to 100.0) and time taken in seconds
     """
+    start_time = time.time()
+    
     # Convert PIL image to OpenCV format
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
@@ -90,7 +93,8 @@ def calculate_ocr_confidence(image):
             except:
                 continue
 
-    return best_conf
+    calculation_time = time.time() - start_time
+    return best_conf, calculation_time
 
 
 def is_page_readable(image, threshold=40):
@@ -104,5 +108,5 @@ def is_page_readable(image, threshold=40):
     Returns:
         bool: True if page is readable, False otherwise
     """
-    confidence = calculate_ocr_confidence(image)
+    confidence, _ = calculate_ocr_confidence(image)
     return confidence >= threshold

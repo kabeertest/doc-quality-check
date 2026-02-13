@@ -7,6 +7,7 @@ import cv2
 from PIL import Image
 import numpy as np
 import io
+import time
 from checks.clarity_check import calculate_ink_ratio
 from checks.confidence_check import calculate_ocr_confidence
 from utils.content_extraction import extract_text_content
@@ -24,6 +25,9 @@ def extract_page_data(file_bytes, file_name):
         List of dictionaries containing page data with quality metrics
     """
     results = []
+    
+    # Record extraction timing
+    start_time = time.time()
 
     # Determine if file is PDF or image
     if file_name.lower().endswith('.pdf'):
@@ -38,11 +42,14 @@ def extract_page_data(file_bytes, file_name):
                 'ink_ratio': 0.0,  # No content means zero ink ratio
                 'ocr_conf': 0.0,   # No content means zero OCR confidence
                 'image': None,      # No image for empty page
-                'text_content': ''  # No text for empty page
+                'text_content': '',  # No text for empty page
+                'extraction_time': 0.0  # No extraction time for empty PDF
             })
         else:
             # Process each page
             for page_num in range(len(doc)):
+                page_start_time = time.time()
+                
                 page = doc.load_page(page_num)
 
                 # Render page at 2x resolution for better accuracy (approx 150-300 DPI)
@@ -52,22 +59,25 @@ def extract_page_data(file_bytes, file_name):
                 # Convert pixmap to image
                 img_data = pix.tobytes("png")
                 pil_img = Image.open(io.BytesIO(img_data))
-
+                
                 # Calculate quality metrics
                 ink_ratio = calculate_ink_ratio(pil_img)
                 ocr_conf = calculate_ocr_confidence(pil_img)
                 text_content = extract_text_content(pil_img)
 
                 # Store results for this page
+                page_extraction_time = time.time() - page_start_time
                 results.append({
                     'page': page_num + 1,
                     'ink_ratio': ink_ratio,
                     'ocr_conf': ocr_conf,
                     'image': pil_img,
-                    'text_content': text_content
+                    'text_content': text_content,
+                    'extraction_time': page_extraction_time
                 })
     else:
         # Handle image files (png, jpg, jpeg)
+        image_start_time = time.time()
         pil_img = Image.open(io.BytesIO(file_bytes))
 
         # Calculate quality metrics
@@ -76,12 +86,17 @@ def extract_page_data(file_bytes, file_name):
         text_content = extract_text_content(pil_img)
 
         # Store results for this image
+        image_extraction_time = time.time() - image_start_time
         results.append({
             'page': 1,
             'ink_ratio': ink_ratio,
             'ocr_conf': ocr_conf,
             'image': pil_img,
-            'text_content': text_content
+            'text_content': text_content,
+            'extraction_time': image_extraction_time
         })
 
-    return results
+    total_extraction_time = time.time() - start_time
+    
+    # Return results with timing info
+    return results, total_extraction_time

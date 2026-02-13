@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
+import time
 from utils.document_processor import extract_page_data
-from utils.content_extraction import display_content_in_sidebar
+from utils.content_extraction import display_content_in_sidebar, extract_text_content
+from checks.clarity_check import calculate_ink_ratio
+from checks.confidence_check import calculate_ocr_confidence
 
 # IMPORTANT: Windows users should install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
 # For Windows, set the path to Tesseract executable if installed in default location
@@ -136,7 +139,7 @@ def main():
         try:
             # Extract page data using cached function
             file_bytes = uploaded_file.read()
-            page_data = extract_page_data(file_bytes, uploaded_file.name)
+            page_data, total_extraction_time = extract_page_data(file_bytes, uploaded_file.name)
             
             # Update progress
             progress_bar.progress(100)
@@ -146,10 +149,25 @@ def main():
             df_data = []
             invalid_pages = []
 
+            # Calculate total clarity and confidence times
+            total_clarity_time = 0
+            total_confidence_time = 0
+            
             for page_info in page_data:
                 page_num = page_info['page']
-                ink_ratio_pct = page_info['ink_ratio'] * 100
-                ocr_conf = page_info['ocr_conf']
+                
+                # Calculate clarity metric with timing
+                ink_ratio, clarity_time = calculate_ink_ratio(page_info['image'])
+                total_clarity_time += clarity_time
+                ink_ratio_pct = ink_ratio * 100
+                
+                # Calculate confidence metric with timing
+                ocr_conf, confidence_time = calculate_ocr_confidence(page_info['image'])
+                total_confidence_time += confidence_time
+                
+                # Get text content with timing
+                text_content, content_extraction_time = extract_text_content(page_info['image'])
+                page_info['text_content'] = text_content
 
                 # Determine emptiness and readability status based on thresholds and enabled checks
                 is_empty = False
@@ -186,21 +204,21 @@ def main():
                     'Ink%': f"{ink_ratio_pct:.2f}",
                     'Conf Score': f"{ocr_conf:.2f}"
                 }
-                
+
                 if emptiness_check_enabled:
                     row['Empty'] = "Yes" if is_empty else "No"
-                    
+
                 if readability_check_enabled:
                     row['Readable'] = "Yes" if is_readable else "No"
-                    
+
                 # Add reason as the last column
                 row['Reason'] = reason
-                
+
                 df_data.append(row)
             
             # Create dataframe
             df = pd.DataFrame(df_data)
-            
+
             # Display summary metrics
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -211,7 +229,17 @@ def main():
             with col3:
                 flagged_count = len([item for item in df_data if item['Status'] == 'Invalid'])
                 st.metric("Flagged/Invalid", flagged_count)
-            
+
+            # Display timing metrics
+            st.subheader("Performance Metrics")
+            timing_col1, timing_col2, timing_col3 = st.columns(3)
+            with timing_col1:
+                st.metric("File Upload & Extraction", f"{total_extraction_time:.2f}s")
+            with timing_col2:
+                st.metric("Clarity Calculation", f"{total_clarity_time:.2f}s")
+            with timing_col3:
+                st.metric("Readability Calculation", f"{total_confidence_time:.2f}s")
+
             # Display results table
             st.subheader("Validation Results")
             st.dataframe(df.style.apply(
