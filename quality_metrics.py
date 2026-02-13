@@ -19,7 +19,8 @@ def calculate_ink_ratio(image):
 
 def calculate_ocr_confidence(image):
     warnings.warn("quality_metrics.calculate_ocr_confidence is deprecated.", DeprecationWarning)
-    result = _calculate_ocr_confidence(image)
+    # Call with balanced mode to maintain original behavior
+    result = _calculate_ocr_confidence(image, mode='balanced')
     # If the new function returns a tuple (value, time), return just the value for backward compatibility
     if isinstance(result, tuple):
         return result[0]
@@ -28,7 +29,8 @@ def calculate_ocr_confidence(image):
 
 def extract_text_content(image):
     warnings.warn("quality_metrics.extract_text_content is deprecated.", DeprecationWarning)
-    result = _extract_text_content(image)
+    # Call with balanced mode to maintain original behavior
+    result = _extract_text_content(image, mode='balanced')
     # If the new function returns a tuple (text, time), return just the text for backward compatibility
     if isinstance(result, tuple):
         return result[0]

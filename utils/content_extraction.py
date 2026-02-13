@@ -12,9 +12,115 @@ import time
 from PIL import Image
 
 
-def extract_text_content(image):
+def resize_image_for_ocr(image, max_size=(400, 400)):
     """
-    Extract text content from an image using OCR.
+    Resize image to reduce processing time while maintaining aspect ratio.
+    
+    Args:
+        image: PIL Image object
+        max_size: Tuple of (max_width, max_height)
+        
+    Returns:
+        PIL Image: Resized image
+    """
+    img_cv = np.array(image)
+    height, width = img_cv.shape[:2]
+    
+    # Calculate scaling factor to fit within max_size
+    scale = min(max_size[0]/width, max_size[1]/height, 1.0)  # Don't upscale
+    
+    if scale < 1.0:
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        img_cv = cv2.resize(img_cv, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        # Convert back to PIL Image
+        if len(img_cv.shape) == 3:
+            img_pil = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
+        else:
+            img_pil = Image.fromarray(img_cv)
+        return img_pil
+    
+    return image
+
+
+def extract_text_content_superfast(image):
+    """
+    Super fast version of text content extraction using OCR.
+
+    Args:
+        image: PIL Image object
+
+    Returns:
+        tuple: (text_content (str), extraction_time (float)) - Extracted text and time taken in seconds
+    """
+    start_time = time.time()
+
+    # Resize image to speed up OCR
+    resized_image = resize_image_for_ocr(image)
+    
+    # Convert PIL image to OpenCV format
+    img_cv = cv2.cvtColor(np.array(resized_image), cv2.COLOR_RGB2BGR)
+
+    # Convert to grayscale for OCR
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+    # Extract text using Tesseract with fastest PSM mode
+    text = pytesseract.image_to_string(gray, config='--psm 7')  # Single text line mode
+
+    extraction_time = time.time() - start_time
+
+    return text, extraction_time
+
+
+def extract_text_content_fast(image):
+    """
+    Fast version of text content extraction using OCR.
+
+    Args:
+        image: PIL Image object
+
+    Returns:
+        tuple: (text_content (str), extraction_time (float)) - Extracted text and time taken in seconds
+    """
+    start_time = time.time()
+
+    # Convert PIL image to OpenCV format
+    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+
+    # Convert to grayscale for OCR
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+    # Extract text using Tesseract with fastest PSM mode
+    text = pytesseract.image_to_string(gray, config='--psm 7')  # Single text line mode
+
+    extraction_time = time.time() - start_time
+
+    return text, extraction_time
+
+
+def extract_text_content(image, mode='fast'):
+    """
+    Extract text content from an image using OCR with configurable speed.
+
+    Args:
+        image: PIL Image object
+        mode: 'superfast', 'fast' or 'balanced' (default 'fast')
+
+    Returns:
+        tuple: (text_content (str), extraction_time (float)) - Extracted text and time taken in seconds
+    """
+    if mode == 'superfast':
+        return extract_text_content_superfast(image)
+    elif mode == 'fast':
+        return extract_text_content_fast(image)
+    else:  # balanced
+        return extract_text_content_balanced(image)
+
+
+def extract_text_content_balanced(image):
+    """
+    Balanced version of text content extraction using OCR.
 
     Args:
         image: PIL Image object
@@ -30,8 +136,8 @@ def extract_text_content(image):
     # Convert to grayscale for OCR
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
-    # Extract text using Tesseract
-    text = pytesseract.image_to_string(gray)
+    # Extract text using Tesseract with optimized PSM mode
+    text = pytesseract.image_to_string(gray, config='--psm 6')
     
     extraction_time = time.time() - start_time
 

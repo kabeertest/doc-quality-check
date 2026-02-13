@@ -61,9 +61,9 @@ def extract_page_data(file_bytes, file_name):
                 pil_img = Image.open(io.BytesIO(img_data))
                 
                 # Calculate quality metrics
-                ink_ratio = calculate_ink_ratio(pil_img)
-                ocr_conf = calculate_ocr_confidence(pil_img)
-                text_content = extract_text_content(pil_img)
+                ink_ratio, _ = calculate_ink_ratio(pil_img)
+                ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='superfast')
+                text_content, _ = extract_text_content(pil_img, mode='superfast')
 
                 # Store results for this page
                 page_extraction_time = time.time() - page_start_time
@@ -81,9 +81,9 @@ def extract_page_data(file_bytes, file_name):
         pil_img = Image.open(io.BytesIO(file_bytes))
 
         # Calculate quality metrics
-        ink_ratio = calculate_ink_ratio(pil_img)
-        ocr_conf = calculate_ocr_confidence(pil_img)
-        text_content = extract_text_content(pil_img)
+        ink_ratio, _ = calculate_ink_ratio(pil_img)
+        ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='superfast')
+        text_content, _ = extract_text_content(pil_img, mode='superfast')
 
         # Store results for this image
         image_extraction_time = time.time() - image_start_time
