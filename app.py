@@ -4,8 +4,9 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 import os
-from document_processor import extract_page_data
-from content_extraction import display_content_in_sidebar
+import cv2
+from utils.document_processor import extract_page_data
+from utils.content_extraction import display_content_in_sidebar
 
 # IMPORTANT: Windows users should install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
 # For Windows, set the path to Tesseract executable if installed in default location
@@ -393,7 +394,7 @@ def main():
 
             # Sidebar for displaying content when a Read Content button is clicked
             if 'show_sidebar' in st.session_state and st.session_state.show_sidebar and 'current_page' in st.session_state:
-                from content_extraction import display_content_in_sidebar
+                from utils.content_extraction import display_content_in_sidebar
                 page_key = st.session_state.current_page
                 content = st.session_state.page_content[page_key] if 'page_content' in st.session_state and page_key in st.session_state.page_content else {}
                 if content:
