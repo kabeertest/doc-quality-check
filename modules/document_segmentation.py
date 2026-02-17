@@ -5,7 +5,6 @@ Document segmentation module for handling multiple documents on a single page.
 import cv2
 import numpy as np
 from PIL import Image
-import math
 from typing import List, Tuple, Dict
 from dataclasses import dataclass
 
@@ -564,39 +563,5 @@ def process_page_with_multiple_documents(image: Image.Image, text_content: str, 
         classification.features['segmented_image'] = segment.image
 
         results.append(classification)
-
-    return results
-
-
-def detect_and_classify_documents_in_pdf(file_bytes: bytes, file_name: str) -> List['IdentityCardClassification']:
-    """
-    Main function to detect and classify documents in a PDF, handling multiple docs per page.
-
-    Args:
-        file_bytes: Bytes of the uploaded PDF file
-        file_name: Name of the uploaded file
-
-    Returns:
-        List of IdentityCardClassification objects with detection results
-    """
-    # Import locally to avoid circular dependency
-    from modules.identity_detection import IdentityCardClassification, IdentityCardDetector
-    from utils.document_processor import extract_page_data
-
-    results = []
-
-    # Extract page data using existing functionality
-    page_data_list, _ = extract_page_data(file_bytes, file_name)
-
-    for page_data in page_data_list:
-        page_num = page_data['page']
-        image = page_data['image']
-        text_content = page_data['text_content']
-
-        # Check if this page might contain multiple documents
-        # This could be determined by layout analysis or document count estimation
-        page_results = process_page_with_multiple_documents(image, text_content, page_num)
-
-        results.extend(page_results)
 
     return results

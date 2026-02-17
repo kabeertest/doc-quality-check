@@ -36,18 +36,3 @@ def calculate_ink_ratio(image):
 
     calculation_time = time.time() - start_time
     return ink_ratio, calculation_time
-
-
-def is_page_clear(image, threshold=0.005):
-    """
-    Check if a page has sufficient content based on ink ratio.
-
-    Args:
-        image: PIL Image object
-        threshold: Minimum ink ratio threshold (default 0.005 = 0.5%)
-
-    Returns:
-        bool: True if page is clear/enough content, False otherwise
-    """
-    ink_ratio, _ = calculate_ink_ratio(image)
-    return ink_ratio >= threshold

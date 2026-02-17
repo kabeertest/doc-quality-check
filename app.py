@@ -1,11 +1,8 @@
 import streamlit as st
 import pytesseract
 from PIL import Image
-import numpy as np
 import pandas as pd
 import os
-import cv2
-import time
 from utils.document_processor import extract_page_data
 from utils.content_extraction import display_content_in_sidebar, extract_text_content
 from checks.clarity_check import calculate_ink_ratio
@@ -106,17 +103,6 @@ def main():
     
     print(f"=== Italian Support: {ITALIAN_SUPPORTED} ===")
     print(f"=== Languages containing 'ita': {[l for l in TESSERACT_LANGS if 'ita' in l]} ===\n")
-
-    # Helper function: get color based on confidence level
-    def get_confidence_color(confidence: float) -> tuple:
-        """Return RGB color based on confidence level."""
-        conf = float(confidence)
-        if conf >= 80:
-            return (0, 200, 0)  # Green - high confidence
-        elif conf >= 50:
-            return (255, 165, 0)  # Amber - medium confidence
-        else:
-            return (255, 50, 50)  # Red - low confidence
 
     st.title("📄 Document Quality /Extract POC ")
     

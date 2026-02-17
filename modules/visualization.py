@@ -4,7 +4,7 @@ Visualization utilities for identity card detection.
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from typing import List, Tuple, Dict
 from modules.document_segmentation import DocumentSegment
 
@@ -120,38 +120,3 @@ def draw_segmentation_results(image: Image.Image,
     
     # Draw bounding boxes
     return draw_bounding_boxes(image, bounding_boxes, labels)
-
-
-def create_document_type_colors() -> Dict[str, Tuple[int, int, int]]:
-    """
-    Create a color mapping for document types from config.
-    
-    Returns:
-        Dictionary mapping document type keys to RGB colors from config
-    """
-    from modules.config_loader import get_config
-    config = get_config()
-    
-    colors = {}
-    for doc_type in config.get_document_types().keys():
-        colors[doc_type] = config.get_document_type_color(doc_type)
-    
-    # Add unknown type
-    colors['unknown'] = (128, 128, 128)
-    
-    return colors
-
-
-def create_side_colors() -> Dict[str, Tuple[int, int, int]]:
-    """
-    Create a color mapping for document sides.
-    
-    Returns:
-        Dictionary mapping side names to RGB colors
-    """
-    return {
-        'front': (255, 0, 0),    # Red
-        'back': (0, 255, 0),     # Green
-        'both': (0, 0, 255),     # Blue
-        'unknown': (128, 128, 128),  # Gray
-    }

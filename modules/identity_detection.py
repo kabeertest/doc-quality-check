@@ -4,10 +4,7 @@ Document types and sides are fully configurable via config.json.
 """
 
 import fitz  # PyMuPDF
-import cv2
-import numpy as np
 from PIL import Image
-import io
 from enum import Enum
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass

@@ -8,42 +8,10 @@ import pytesseract
 import numpy as np
 import time
 from PIL import Image
-from functools import lru_cache
 from utils.logger import get_logger
+from utils.content_extraction import resize_image_for_ocr
 
 logger = get_logger(__name__)
-
-
-def resize_image_for_ocr(image, max_size=(800, 800)):
-    """
-    Resize image to reduce processing time while maintaining aspect ratio.
-    
-    Args:
-        image: PIL Image object
-        max_size: Tuple of (max_width, max_height)
-        
-    Returns:
-        PIL Image: Resized image
-    """
-    img_cv = np.array(image)
-    height, width = img_cv.shape[:2]
-    
-    # Calculate scaling factor to fit within max_size
-    scale = min(max_size[0]/width, max_size[1]/height, 1.0)  # Don't upscale
-    
-    if scale < 1.0:
-        new_width = int(width * scale)
-        new_height = int(height * scale)
-        img_cv = cv2.resize(img_cv, (new_width, new_height), interpolation=cv2.INTER_AREA)
-        
-        # Convert back to PIL Image
-        if len(img_cv.shape) == 3:
-            img_pil = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
-        else:
-            img_pil = Image.fromarray(img_cv)
-        return img_pil
-    
-    return image
 
 
 def _extract_confidences_from_ocr_data(ocr_data):
@@ -335,17 +303,3 @@ def calculate_ocr_confidence(image, mode='balanced', lang='eng', verbose: bool =
             # Even English failed, return 0
             return 0.0, 0.0
 
-
-def is_page_readable(image, threshold=40):
-    """
-    Check if a page is readable based on OCR confidence.
-
-    Args:
-        image: PIL Image object
-        threshold: Minimum OCR confidence threshold (default 40)
-
-    Returns:
-        bool: True if page is readable, False otherwise
-    """
-    confidence, _ = calculate_ocr_confidence(image, mode='fast')
-    return confidence >= threshold

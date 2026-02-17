@@ -3,7 +3,6 @@ Text cleaning utilities to remove unwanted characters and improve text quality.
 """
 
 import re
-from typing import Optional
 
 
 def clean_text(text: str) -> str:
@@ -50,59 +49,3 @@ def clean_text(text: str) -> str:
     text = '\n'.join(lines)
     
     return text.strip()
-
-
-def sanitize_for_display(text: str, max_length: Optional[int] = None) -> str:
-    """
-    Sanitize text for safe display in UI.
-    Applies text cleaning and optionally truncates.
-    
-    Args:
-        text: Text to sanitize
-        max_length: Optional maximum length (truncates with ellipsis if exceeded)
-        
-    Returns:
-        Sanitized and optionally truncated text
-    """
-    sanitized = clean_text(text)
-    
-    if max_length and len(sanitized) > max_length:
-        sanitized = sanitized[:max_length].rstrip() + "..."
-    
-    return sanitized
-
-
-def is_garbage_text(text: str, min_length: int = 5) -> bool:
-    """
-    Check if text appears to be mostly garbage/corrupted.
-    
-    Args:
-        text: Text to check
-        min_length: Minimum expected length of valid text
-        
-    Returns:
-        True if text appears to be garbage, False otherwise
-    """
-    if not text or len(text) < min_length:
-        return True
-    
-    # Count replacement characters and control chars
-    problem_chars = len(re.findall(r'[?\x00-\x1F\x7F\uFFFD]', text))
-    
-    # If more than 30% of text is problematic characters, it's likely garbage
-    return problem_chars / len(text) > 0.3
-
-
-def clean_label_text(text: str) -> str:
-    """
-    Clean text for use in label/title display.
-    Removes unwanted characters and limits length for display.
-    
-    Args:
-        text: Text for label
-        
-    Returns:
-        Cleaned label text (max 100 chars)
-    """
-    cleaned = clean_text(text)
-    return sanitize_for_display(cleaned, max_length=100)
