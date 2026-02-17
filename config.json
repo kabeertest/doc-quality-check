@@ -1,0 +1,102 @@
+{
+  "document_types": {
+    "residential_id": {
+      "label": "RESIDENTIAL_ID",
+      "display_name": "Residential ID",
+      "aliases": ["residence id", "address card", "residence certificate", "national id", "id card", "identity card"],
+      "keywords": {
+        "en": ["residential", "residence", "address proof", "address card", "residence certificate", "address verification", "national id", "id card", "identity card", "place of birth", "date of birth", "questura", "milano"],
+        "it": ["residenziale", "residenza", "attestato di residenza", "certificato di residenza", "domicilio", "indirizzo", "carta d'identità", "carta d'identita", "identita", "identity", "identity card", "carta identita", "documento di identità", "luogo di nascita", "data di nascita", "questura", "nasci", "morte", "sesso", "genere", "cittadinanza", "cognome", "nome"],
+        "other": ["domicile", "certificat de domicile", "certificado de residencia", "lugar de nacimiento", "fecha de nacimiento"]
+      },
+      "color": [255, 0, 0],
+      "enabled": true
+    },
+    "aadhaar": {
+      "label": "AADHAAR",
+      "display_name": "Aadhaar Card",
+      "aliases": ["aadhar", "uidai", "aadhaar card"],
+      "keywords": {
+        "en": ["aadhaar", "aadhar", "uidai", "unique identification", "aadhaar card", "enrollment id"],
+        "it": ["identificazione", "documento di identità", "carta d'identità", "numero di identificazione"],
+        "other": ["आधार", "पहचान"]
+      },
+      "color": [0, 123, 255],
+      "enabled": true
+    }
+  },
+  "document_sides": {
+    "front": {
+      "label": "F",
+      "display_name": "Front",
+      "aliases": ["face", "front side", "obverse", "recto"],
+      "keywords": {
+        "en": ["identity card", "id card", "name", "surname", "given name", "date of birth", "dob", "place of birth", "gender", "sex", "nationality", "card number", "personal data", "face", "photo", "family name"],
+        "it": ["carta d'identità", "carta d'identita", "nome", "cognome", "data di nascita", "luogo di nascita", "sesso", "genere", "cittadinanza", "numero di tessera", "numero della carta", "dati personali", "volto", "foto", "fotografia", "immagine", "numero serie", "numero documento"],
+        "other": ["número de documento", "nombre", "apellido", "fecha de nacimiento", "lugar de nacimiento", "sexo", "nacionalidad", "fotografía"]
+      },
+      "enabled": true
+    },
+    "back": {
+      "label": "B",
+      "display_name": "Back",
+      "aliases": ["reverse", "back side", "rear", "verso"],
+      "keywords": {
+        "en": ["signature", "expiry", "expiration date", "valid until", "issue date", "issued by", "authority", "qr code", "barcode", "security features", "residence permit", "seal", "stamp"],
+        "it": ["firma", "scadenza", "data di scadenza", "valido fino", "data di rilascio", "rilasciato da", "autorità", "codice qr", "qr code", "codice a barre", "barcode", "timbro", "sigillo", "permesso di soggiorno", "permesso di residenza", "caratteristiche di sicurezza", "ente emittente", "linea di lettura", "mrz"],
+        "other": ["firma", "caducidad", "vencimiento", "fecha de vencimiento", "código qr", "código de barras"]
+      },
+      "enabled": true
+    }
+  },
+  "detection_settings": {
+    "min_document_area_percent": 2.0,
+    "max_document_area_percent": 95.0,
+    "min_aspect_ratio": 1.2,
+    "max_aspect_ratio": 2.5,
+    "padding_percent": 8.0,
+    "min_confidence_threshold": 30.0
+  },
+  "side_detection_weights": {
+    "en_weight": 2.0,
+    "other_weight": 1.0,
+    "feature_weight": 3.0,
+    "moderate_ocr_min": 30.0,
+    "moderate_ocr_max": 70.0,
+    "moderate_ocr_side_multiplier": 1.5
+  },
+  "confidence_boost_settings": {
+    "single_match_boost": 5.0,
+    "double_match_boost": 10.0,
+    "triple_plus_match_boost": 15.0,
+    "side_single_match_boost": 4.0,
+    "side_double_match_boost": 8.0,
+    "side_triple_plus_match_boost": 12.0,
+    "max_confidence_cap": 100.0,
+    "specificity_bonus_per_word": {
+      "single_word": 1.0,
+      "two_words": 2.0,
+      "three_plus_words": 3.0
+    },
+    "max_specificity_bonus": 10.0,
+    "consistency_bonus": {
+      "two_matches": 3.0,
+      "three_plus_matches": 5.0
+    },
+    "quality_factors": {
+      "poor_ocr_threshold": 30.0,
+      "poor_ocr_factor": 0.5,
+      "medium_ocr_threshold": 50.0,
+      "medium_ocr_factor": 0.75,
+      "poor_ink_ratio_min": 0.05,
+      "poor_ink_ratio_max": 0.8,
+      "poor_ink_factor": 0.8
+    }
+  },
+  "ui_settings": {
+    "max_keywords_display": 10,
+    "show_confidence_breakdown": true,
+    "show_specific_keywords": true,
+    "enable_visualization": true
+  }
+}

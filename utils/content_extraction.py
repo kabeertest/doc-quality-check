@@ -66,7 +66,8 @@ def extract_text_content_superfast(image):
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
     # Extract text using Tesseract with fastest PSM mode
-    text = pytesseract.image_to_string(gray, config='--psm 7')  # Single text line mode
+    pil_for_ocr = resized_image.convert('RGB')
+    text = pytesseract.image_to_string(pil_for_ocr, config='--psm 7')  # Single text line mode
 
     extraction_time = time.time() - start_time
 
@@ -91,8 +92,9 @@ def extract_text_content_fast(image):
     # Convert to grayscale for OCR
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
-    # Extract text using Tesseract with fastest PSM mode
-    text = pytesseract.image_to_string(gray, config='--psm 7')  # Single text line mode
+    # Extract text using Tesseract with a more appropriate PSM for multi-line content
+    pil_for_ocr = image.convert('RGB')
+    text = pytesseract.image_to_string(pil_for_ocr, config='--psm 6')  # Assume a single uniform block of text
 
     extraction_time = time.time() - start_time
 
@@ -137,7 +139,8 @@ def extract_text_content_balanced(image):
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
     # Extract text using Tesseract with optimized PSM mode
-    text = pytesseract.image_to_string(gray, config='--psm 6')
+    pil_for_ocr = image.convert('RGB')
+    text = pytesseract.image_to_string(pil_for_ocr, config='--psm 6')
     
     extraction_time = time.time() - start_time
 

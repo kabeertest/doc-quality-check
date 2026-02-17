@@ -9,6 +9,25 @@ import time
 from PIL import Image
 
 
+def _extract_confidences_from_ocr_data(ocr_data):
+    """
+    Extract numeric confidence values from pytesseract `image_to_data` output.
+    """
+    confidences = []
+    texts = ocr_data.get('text', [])
+    confs = ocr_data.get('conf', [])
+    for i, text in enumerate(texts):
+        try:
+            conf_val = float(confs[i])
+        except Exception:
+            continue
+
+        if text and text.strip() and conf_val >= 0:
+            confidences.append(conf_val)
+
+    return confidences
+
+
 def calculate_ocr_confidence_fast(image):
     """
     Fast version of OCR confidence calculation - single PSM mode only.
@@ -21,30 +40,20 @@ def calculate_ocr_confidence_fast(image):
     """
     start_time = time.time()
     
-    # Convert PIL image to OpenCV format
-    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-    # Convert to grayscale for OCR
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    # Use PIL image for pytesseract to avoid channel/depth issues
+    pil_for_ocr = image.convert('RGB')
 
     # Single PSM mode for speed
     config_str = '--psm 6 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
-    
     try:
         ocr_data = pytesseract.image_to_data(
-            gray,
+            pil_for_ocr,
             output_type=pytesseract.Output.DICT,
             config=config_str
         )
 
-        # Filter out rows with empty text/whitespace and invalid confidence values
-        confidences = []
-        for i, text in enumerate(ocr_data['text']):
-            # Check if the text is not empty and confidence is valid (0-100)
-            if text.strip() and ocr_data['conf'][i] != -1:
-                confidences.append(ocr_data['conf'][i])
-
-        # Calculate average confidence
+        # Extract numeric confidences safely
+        confidences = _extract_confidences_from_ocr_data(ocr_data)
         avg_conf = sum(confidences) / len(confidences) if confidences else 0
 
     except:
@@ -66,30 +75,19 @@ def calculate_ocr_confidence_balanced(image):
     """
     start_time = time.time()
     
-    # Convert PIL image to OpenCV format
-    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-    # Convert to grayscale for OCR
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    pil_for_ocr = image.convert('RGB')
 
     # Try single PSM mode first (most common and fastest)
     config_str = '--psm 6 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
-    
     try:
         ocr_data = pytesseract.image_to_data(
-            gray,
+            pil_for_ocr,
             output_type=pytesseract.Output.DICT,
             config=config_str
         )
 
-        # Filter out rows with empty text/whitespace and invalid confidence values
-        confidences = []
-        for i, text in enumerate(ocr_data['text']):
-            # Check if the text is not empty and confidence is valid (0-100)
-            if text.strip() and ocr_data['conf'][i] != -1:
-                confidences.append(ocr_data['conf'][i])
-
-        # Calculate average confidence
+        # Extract numeric confidences safely
+        confidences = _extract_confidences_from_ocr_data(ocr_data)
         best_conf = sum(confidences) / len(confidences) if confidences else 0
         
         # If confidence is reasonably high, return early (optimization)
@@ -114,18 +112,22 @@ def calculate_ocr_confidence_balanced(image):
         config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
 
         try:
+            # Convert enhanced (numpy) image back to PIL for pytesseract
+            if isinstance(enhanced, np.ndarray):
+                try:
+                    pil_enhanced = Image.fromarray(enhanced)
+                except Exception:
+                    pil_enhanced = Image.fromarray(cv2.cvtColor(enhanced, cv2.COLOR_BGR2RGB))
+            else:
+                pil_enhanced = enhanced
+
             enhanced_ocr_data = pytesseract.image_to_data(
-                enhanced,
+                pil_enhanced,
                 output_type=pytesseract.Output.DICT,
                 config=config_str
             )
 
-            enhanced_confidences = []
-            for i, text in enumerate(enhanced_ocr_data['text']):
-                # Check if the text is not empty and confidence is valid (0-100)
-                if text.strip() and enhanced_ocr_data['conf'][i] != -1:
-                    enhanced_confidences.append(enhanced_ocr_data['conf'][i])
-
+            enhanced_confidences = _extract_confidences_from_ocr_data(enhanced_ocr_data)
             enhanced_avg_conf = sum(enhanced_confidences) / len(enhanced_confidences) if enhanced_confidences else 0
 
             # Update best confidence if this is better
@@ -180,14 +182,8 @@ def calculate_ocr_confidence_accurate(image):
             config=config_str
         )
 
-        # Filter out rows with empty text/whitespace and invalid confidence values
-        confidences = []
-        for i, text in enumerate(ocr_data['text']):
-            # Check if the text is not empty and confidence is valid (0-100)
-            if text.strip() and ocr_data['conf'][i] != -1:
-                confidences.append(ocr_data['conf'][i])
-
-        # Calculate average confidence
+        # Extract numeric confidences safely
+        confidences = _extract_confidences_from_ocr_data(ocr_data)
         best_conf = sum(confidences) / len(confidences) if confidences else 0
         
         # If confidence is reasonably high, return early (optimization)
@@ -214,18 +210,21 @@ def calculate_ocr_confidence_accurate(image):
             config_str = psm_mode + ' -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
 
             try:
+                if isinstance(enhanced, np.ndarray):
+                    try:
+                        pil_enhanced = Image.fromarray(enhanced)
+                    except Exception:
+                        pil_enhanced = Image.fromarray(cv2.cvtColor(enhanced, cv2.COLOR_BGR2RGB))
+                else:
+                    pil_enhanced = enhanced
+
                 enhanced_ocr_data = pytesseract.image_to_data(
-                    enhanced,
+                    pil_enhanced,
                     output_type=pytesseract.Output.DICT,
                     config=config_str
                 )
 
-                enhanced_confidences = []
-                for i, text in enumerate(enhanced_ocr_data['text']):
-                    # Check if the text is not empty and confidence is valid (0-100)
-                    if text.strip() and enhanced_ocr_data['conf'][i] != -1:
-                        enhanced_confidences.append(enhanced_ocr_data['conf'][i])
-
+                enhanced_confidences = _extract_confidences_from_ocr_data(enhanced_ocr_data)
                 enhanced_avg_conf = sum(enhanced_confidences) / len(enhanced_confidences) if enhanced_confidences else 0
 
                 # Update best confidence if this is better

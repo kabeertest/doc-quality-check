@@ -8,9 +8,43 @@ from PIL import Image
 import numpy as np
 import io
 import time
+import re
 from checks.clarity_check import calculate_ink_ratio
 from checks.confidence_check import calculate_ocr_confidence
 from utils.content_extraction import extract_text_content
+
+
+def detect_document_language(text_content):
+    """
+    Detect document language based on text content.
+    
+    Args:
+        text_content: Extracted text from the document
+        
+    Returns:
+        str: Language code ('ita' for Italian, 'eng' for English)
+    """
+    if not text_content:
+        return 'eng'
+    
+    text_lower = text_content.lower()
+    
+    # Italian-specific keywords
+    italian_indicators = [
+        'residenza', 'residenziale', 'certificato', 'attestato', 'domicilio',
+        'fronte', 'retro', 'firma', 'nato', 'nazionale', 'cittadinanza',
+        'documento', 'identità', 'carta d', 'numero', 'data di',
+        'comune', 'provincia', 'regione', 'indirizzo', 'via', 'corso'
+    ]
+    
+    # Count Italian indicators
+    italian_count = sum(1 for indicator in italian_indicators if indicator in text_lower)
+    
+    # If we find 2 or more Italian indicators, use Italian language
+    if italian_count >= 2:
+        return 'ita'
+    
+    return 'eng'
 
 
 def extract_page_data(file_bytes, file_name):
@@ -59,11 +93,16 @@ def extract_page_data(file_bytes, file_name):
                 # Convert pixmap to image
                 img_data = pix.tobytes("png")
                 pil_img = Image.open(io.BytesIO(img_data))
+
+                # First pass: Extract text with English to detect language
+                text_content, _ = extract_text_content(pil_img, mode='fast')
                 
-                # Calculate quality metrics
+                # Detect document language
+                doc_lang = detect_document_language(text_content)
+
+                # Calculate quality metrics with detected language
                 ink_ratio, _ = calculate_ink_ratio(pil_img)
-                ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='superfast')
-                text_content, _ = extract_text_content(pil_img, mode='superfast')
+                ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='fast', lang=doc_lang)
 
                 # Store results for this page
                 page_extraction_time = time.time() - page_start_time
@@ -73,6 +112,7 @@ def extract_page_data(file_bytes, file_name):
                     'ocr_conf': ocr_conf,
                     'image': pil_img,
                     'text_content': text_content,
+                    'detected_language': doc_lang,
                     'extraction_time': page_extraction_time
                 })
     else:
@@ -80,10 +120,15 @@ def extract_page_data(file_bytes, file_name):
         image_start_time = time.time()
         pil_img = Image.open(io.BytesIO(file_bytes))
 
-        # Calculate quality metrics
+        # First pass: Extract text to detect language
+        text_content, _ = extract_text_content(pil_img, mode='fast')
+        
+        # Detect document language
+        doc_lang = detect_document_language(text_content)
+
+        # Calculate quality metrics with detected language
         ink_ratio, _ = calculate_ink_ratio(pil_img)
-        ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='superfast')
-        text_content, _ = extract_text_content(pil_img, mode='superfast')
+        ocr_conf, _ = calculate_ocr_confidence(pil_img, mode='fast', lang=doc_lang)
 
         # Store results for this image
         image_extraction_time = time.time() - image_start_time
@@ -93,6 +138,7 @@ def extract_page_data(file_bytes, file_name):
             'ocr_conf': ocr_conf,
             'image': pil_img,
             'text_content': text_content,
+            'detected_language': doc_lang,
             'extraction_time': image_extraction_time
         })
 
