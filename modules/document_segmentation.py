@@ -528,6 +528,7 @@ def process_page_with_multiple_documents(image: Image.Image, text_content: str, 
     from modules.identity_detection import IdentityCardClassification, IdentityCardDetector
     from modules.config_loader import get_config
     from utils.content_extraction import extract_text_content
+    from utils.text_cleaner import clean_text
     from checks.clarity_check import calculate_ink_ratio
     
     # First, try to segment the page into individual documents
@@ -546,6 +547,9 @@ def process_page_with_multiple_documents(image: Image.Image, text_content: str, 
             # Use full mode result if it's significantly better
             if len(individual_text_full) > len(individual_text) * 1.5:
                 individual_text = individual_text_full
+
+        # Clean the extracted text to remove unwanted characters
+        individual_text = clean_text(individual_text)
 
         # Classify this individual document
         detector = IdentityCardDetector()

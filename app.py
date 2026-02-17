@@ -272,7 +272,7 @@ def main():
         "Identity Confidence Threshold (%)",
         min_value=0,
         max_value=100,
-        value=50,
+        value=70,
         step=5,
         help="Only show identity segments with confidence at or above this threshold"
     )
@@ -458,11 +458,13 @@ def main():
                     for r in results:
                         # Track national id presence and best national
                         if r.document_type.value == 'residential_id':
-                            has_national = True
                             if float(r.confidence) > best_national_conf:
                                 best_national_conf = float(r.confidence)
                                 side_name = config.get_document_side_name(r.document_side.value) or r.document_side.value
                                 best_national_label = f"National ID — {side_name.title()} ({float(r.confidence):.1f}%)"
+                    
+                    # Only mark as present if confidence meets threshold
+                    has_national = best_national_conf >= identity_confidence_threshold
 
                     identity_df_data.append({
                         'Page': page,
@@ -572,31 +574,47 @@ def main():
                         annotated_image = original_image
                     
                     # Show page with all segments
-                    st.write(f"**Page {page_num}**")
+                    st.write(f"**📄 Page {page_num}**")
                     st.image(annotated_image, caption=f"Page {page_num} - {len(filtered_segments)} segment(s) detected (Confidence threshold: {identity_confidence_threshold}%)", width="stretch")
                     
-                    # Show segment summary as a compact list
+                    # Show segment summary with improved visual presentation
                     if filtered_segments:
-                        st.write("**Detected Segments:**")
-                        seg_cols = st.columns(len(filtered_segments))
+                        st.write("**✅ Detected Segments:**")
+                        
+                        # Organize segments into columns for better layout
+                        seg_cols = st.columns(min(3, len(filtered_segments)))
+                        
                         for idx, result in enumerate(filtered_segments):
-                            with seg_cols[idx]:
+                            col_idx = idx % len(seg_cols)
+                            with seg_cols[col_idx]:
                                 raw_doc_type = result.document_type.value
                                 if raw_doc_type == 'residential_id':
                                     doc_type_name = 'National ID'
+                                    doc_emoji = '🆔'
                                 else:
                                     doc_type_name = config.get_document_type_name(raw_doc_type) or raw_doc_type
+                                    doc_emoji = '📋'
+                                
                                 side_name = config.get_document_side_name(result.document_side.value) or result.document_side.value
+                                side_emoji = '🔸' if result.document_side.value.lower() == 'front' else '🔶' if result.document_side.value.lower() == 'back' else '⭕'
                                 conf = float(result.confidence)
                                 
-                                st.metric(
-                                    f"{doc_type_name}",
-                                    f"{conf:.1f}%",
-                                    delta=side_name.title(),
-                                    delta_color="off"
-                                )
+                                # Create visual card with better styling
+                                with st.container(border=True):
+                                    col_doc, col_conf = st.columns([2, 1])
+                                    with col_doc:
+                                        st.write(f"{doc_emoji} **{doc_type_name}**")
+                                        st.write(f"{side_emoji} {side_name.title()}")
+                                    with col_conf:
+                                        # Color-code confidence display
+                                        if conf >= 85:
+                                            st.success(f"**{conf:.1f}%**")
+                                        elif conf >= 70:
+                                            st.info(f"**{conf:.1f}%**")
+                                        else:
+                                            st.warning(f"**{conf:.1f}%**")
                     else:
-                        st.info(f"No segments above {identity_confidence_threshold}% confidence threshold.")
+                        st.info(f"⚠️ No segments above {identity_confidence_threshold}% confidence threshold.")
                     
                     st.divider()
 
@@ -604,7 +622,21 @@ def main():
                 with st.expander("🔬 Advanced Analysis (Confidence Details, Keywords, OCR Data)", expanded=False):
                     for idx, result in enumerate(identity_results):
                         is_national = (result.document_type.value == 'residential_id')
-                        exp_label = f"Page {result.page_number} - National ID {result.document_side.value.title()} ({float(result.confidence):.1f}%)" if is_national else f"Page {result.page_number} - {result.document_type.value} ({result.document_side.value}) - {float(result.confidence):.2f}%"
+                        
+                        # Format side name
+                        raw_doc_type = result.document_type.value
+                        if raw_doc_type == 'residential_id':
+                            doc_type_display = 'National ID'
+                            doc_emoji = '🆔'
+                        else:
+                            doc_type_display = config.get_document_type_name(raw_doc_type) or raw_doc_type
+                            doc_emoji = '📋'
+                        
+                        side_name_raw = result.document_side.value.title()
+                        side_emoji = '🔸' if result.document_side.value.lower() == 'front' else '🔶' if result.document_side.value.lower() == 'back' else '⭕'
+                        
+                        exp_label = f"{doc_emoji} {doc_type_display} — {side_emoji} {side_name_raw} ({float(result.confidence):.1f}%)"
+                        
                         with st.expander(exp_label, expanded=is_national):
                             # Display the segmented image if available
                             if 'segmented_image' in result.features:
@@ -614,9 +646,16 @@ def main():
                                     width="stretch"
                                 )
                             
-                            st.write(f"**Document Type:** {result.document_type.value}")
-                            st.write(f"**Document Side:** {result.document_side.value}")
-                            st.write(f"**Final Confidence:** {result.confidence:.2f}%")
+                            # Display document info in a cleaner format
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Document Type", doc_type_display, doc_emoji)
+                            with col2:
+                                st.metric("Document Side", side_name_raw, side_emoji)
+                            with col3:
+                                conf_val = float(result.confidence)
+                                color = "green" if conf_val >= 85 else "orange" if conf_val >= 70 else "red"
+                                st.metric("Final Confidence", f"{conf_val:.1f}%")
                         
                             # Show detailed confidence breakdown
                             st.write("**Confidence Breakdown:**")
@@ -631,28 +670,28 @@ def main():
                                 freq_boost = float(adjustment_details.get('frequency_boost', 0))
                                 if freq_boost > 0:
                                     cross_docs = int(adjustment_details.get('cross_document_matches', 0))
-                                    st.write(f"  - Frequency Boost: +{freq_boost:.2f}% ({cross_docs} document(s) with similar keywords)")
+                                    st.write(f"  - 📊 Frequency Boost: +{freq_boost:.2f}% ({cross_docs} document(s) with similar keywords)")
                                 
                                 # Specificity bonus
                                 spec_bonus = float(adjustment_details.get('specificity_bonus', 0))
                                 if spec_bonus > 0:
-                                    st.write(f"  - Specificity Bonus: +{spec_bonus:.2f}% (specific keywords detected)")
+                                    st.write(f"  - 🎯 Specificity Bonus: +{spec_bonus:.2f}% (specific keywords detected)")
                                 
                                 # Consistency bonus
                                 consist_bonus = float(adjustment_details.get('consistency_bonus', 0))
                                 if consist_bonus > 0:
-                                    st.write(f"  - Consistency Bonus: +{consist_bonus:.2f}% (multiple keyword matches)")
+                                    st.write(f"  - 🔄 Consistency Bonus: +{consist_bonus:.2f}% (multiple keyword matches)")
                                 
                                 # Quality factor
                                 quality_factor = float(adjustment_details.get('quality_factor', 1.0))
                                 if quality_factor < 1.0:
-                                    st.warning(f"  - Quality Adjustment: ×{quality_factor:.2f} (reduced due to low document quality)")
+                                    st.warning(f"  - ⚠️ Quality Adjustment: ×{quality_factor:.2f} (reduced due to low document quality)")
                                 else:
-                                    st.write(f"  - Quality Factor: ×{quality_factor:.2f} (good quality)")
+                                    st.write(f"  - ✅ Quality Factor: ×{quality_factor:.2f} (good quality)")
                                 
                                 # Total adjustment
                                 total_adj = float(adjustment_details.get('total_adjustment', 0))
-                                st.write(f"  - **Total Adjustment: +{total_adj:.2f}%**")
+                                st.write(f"  - **💡 Total Adjustment: +{total_adj:.2f}%**")
                                 
                                 # Visual indicator
                                 if total_adj > 10:
@@ -728,7 +767,9 @@ def main():
                                 st.write("  _No specific keywords detected_")
                             
                             st.write(f"**Text Content:**")
-                            st.text_area("Extracted Text", value=result.text_content, height=150, key=f"text_area_{idx}")
+                            from utils.text_cleaner import clean_text
+                            cleaned_text = clean_text(result.text_content)
+                            st.text_area("Extracted Text", value=cleaned_text, height=150, key=f"text_area_{idx}")
 
             else:
                 st.info("No identity documents detected in the uploaded file.")
