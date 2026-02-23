@@ -6,8 +6,7 @@
       "aliases": ["residence id", "address card", "residence certificate", "national id", "id card", "identity card"],
       "keywords": {
         "en": ["residential", "residence", "address proof", "address card", "residence certificate", "address verification", "national id", "id card", "identity card", "place of birth", "date of birth", "questura", "milano"],
-        "it": ["residenziale", "residenza", "attestato di residenza", "certificato di residenza", "domicilio", "indirizzo", "carta d'identità", "carta d'identita", "identita", "identity", "identity card", "carta identita", "documento di identità", "luogo di nascita", "data di nascita", "questura", "nasci", "morte", "sesso", "genere", "cittadinanza", "cognome", "nome"],
-        "other": ["domicile", "certificat de domicile", "certificado de residencia", "lugar de nacimiento", "fecha de nacimiento"]
+        "it": ["residenziale", "residenza", "attestato di residenza", "certificato di residenza", "domicilio", "indirizzo", "carta d'identità", "carta d'identita", "identita", "identity", "identity card", "carta identita", "documento di identità", "luogo di nascita", "data di nascita", "questura", "nasci", "morte", "sesso", "genere", "cittadinanza", "cognome", "nome"]
       },
       "color": [255, 0, 0],
       "enabled": true
@@ -18,11 +17,20 @@
       "aliases": ["aadhar", "uidai", "aadhaar card"],
       "keywords": {
         "en": ["aadhaar", "aadhar", "uidai", "unique identification", "aadhaar card", "enrollment id"],
-        "it": ["identificazione", "documento di identità", "carta d'identità", "numero di identificazione"],
-        "other": ["आधार", "पहचान"]
+        "it": ["identificazione", "documento di identità", "carta d'identità", "numero di identificazione"]
       },
       "color": [0, 123, 255],
       "enabled": true
+    }
+  },
+  "ocr_settings": {
+    "primary_language": "ita",
+    "fallback_language": "eng",
+    "auto_detect_language": true,
+    "supported_languages": ["eng", "ita"],
+    "language_detection_keywords": {
+      "ita": ["residenza", "residenziale", "certificato", "attestato", "domicilio", "fronte", "retro", "firma", "nato", "nazionale", "cittadinanza", "documento", "identità", "carta d", "numero", "data di", "comune", "provincia", "regione", "indirizzo", "via", "corso", "repubblica", "italiana", "ministro", "interno", "rilasciato", "permesso", "soggiorno", "tessera", "elettorale", "codice fiscale", "cognome", "nome", "luogo di nascita", "sesso", "morte", "genere", "altezza", "occhi", "cap", "provincia di", "regione di", "questura", "milano", "roma", "napoli", "torino", "documento di identità", "carta identità", "identità card", "tipo di documento", "scadenza", "valido", "rilascio", "autorità", "mrz", "linea di lettura", "codice a barre", "timbro", "sigillo"],
+      "eng": ["residence", "residential", "certificate", "domicile", "front", "back", "signature", "born", "national", "citizenship", "document", "identity", "card", "number", "date of", "province", "region", "address", "street", "republic", "minister", "issued", "permit", "electoral", "surname", "name", "place of birth", "sex", "gender", "height", "eyes", "postal code", "province of", "region of", "police headquarters", "milan", "rome", "naples", "turin", "identity document", "identity card", "type of document", "expiration", "valid", "issue", "authority", "mrz", "machine readable", "barcode", "stamp", "seal"]
     }
   },
   "document_sides": {
@@ -32,8 +40,7 @@
       "aliases": ["face", "front side", "obverse", "recto"],
       "keywords": {
         "en": ["identity card", "id card", "name", "surname", "given name", "date of birth", "dob", "place of birth", "gender", "sex", "nationality", "card number", "personal data", "face", "photo", "family name"],
-        "it": ["carta d'identità", "carta d'identita", "nome", "cognome", "data di nascita", "luogo di nascita", "sesso", "genere", "cittadinanza", "numero di tessera", "numero della carta", "dati personali", "volto", "foto", "fotografia", "immagine", "numero serie", "numero documento"],
-        "other": ["número de documento", "nombre", "apellido", "fecha de nacimiento", "lugar de nacimiento", "sexo", "nacionalidad", "fotografía"]
+        "it": ["carta d'identità", "carta d'identita", "nome", "cognome", "data di nascita", "luogo di nascita", "sesso", "genere", "cittadinanza", "numero di tessera", "numero della carta", "dati personali", "volto", "foto", "fotografia", "immagine", "numero serie", "numero documento"]
       },
       "enabled": true
     },
@@ -43,8 +50,7 @@
       "aliases": ["reverse", "back side", "rear", "verso"],
       "keywords": {
         "en": ["signature", "expiry", "expiration date", "valid until", "issue date", "issued by", "authority", "qr code", "barcode", "security features", "residence permit", "seal", "stamp"],
-        "it": ["firma", "scadenza", "data di scadenza", "valido fino", "data di rilascio", "rilasciato da", "autorità", "codice qr", "qr code", "codice a barre", "barcode", "timbro", "sigillo", "permesso di soggiorno", "permesso di residenza", "caratteristiche di sicurezza", "ente emittente", "linea di lettura", "mrz"],
-        "other": ["firma", "caducidad", "vencimiento", "fecha de vencimiento", "código qr", "código de barras"]
+        "it": ["firma", "scadenza", "data di scadenza", "valido fino", "data di rilascio", "rilasciato da", "autorità", "codice qr", "qr code", "codice a barre", "barcode", "timbro", "sigillo", "permesso di soggiorno", "permesso di residenza", "caratteristiche di sicurezza", "ente emittente", "linea di lettura", "mrz"]
       },
       "enabled": true
     }
@@ -55,7 +61,7 @@
     "min_aspect_ratio": 1.2,
     "max_aspect_ratio": 2.5,
     "padding_percent": 8.0,
-    "min_confidence_threshold": 30.0
+    "min_confidence_threshold": 15.0
   },
   "side_detection_weights": {
     "en_weight": 2.0,

@@ -246,10 +246,33 @@ def main():
         "Readability Threshold (Confidence)",
         min_value=0,
         max_value=100,
-        value=40,
+        value=15,  # Lowered from 40 to 15 based on dataset analysis
         step=1,
         help="If OCR confidence is below this value, page is marked as unreadable",
         disabled=not readability_check_enabled
+    )
+
+    # OCR Language Configuration
+    st.sidebar.subheader("OCR Settings")
+    
+    # Load available languages from config (Italian and English only)
+    ocr_languages = {
+        'Italian': 'ita',
+        'English': 'eng'
+    }
+    
+    primary_language = st.sidebar.selectbox(
+        "Primary OCR Language",
+        options=list(ocr_languages.keys()),
+        index=0,  # Default to Italian
+        help="Primary language for OCR recognition. Italian is recommended for Italian documents."
+    )
+    primary_language_code = ocr_languages[primary_language]
+    
+    auto_detect_language = st.sidebar.checkbox(
+        "Auto-Detect Language",
+        value=True,
+        help="Automatically detect document language from content. If disabled, will use primary language for all documents."
     )
 
     # Identity Detection Configuration
@@ -277,9 +300,14 @@ def main():
         status_text.text("Processing file...")
 
         try:
-            # Extract page data using cached function
+            # Extract page data using cached function with language settings
             file_bytes = uploaded_file.read()
-            page_data, total_extraction_time = extract_page_data(file_bytes, uploaded_file.name)
+            page_data, total_extraction_time = extract_page_data(
+                file_bytes, 
+                uploaded_file.name,
+                primary_language=primary_language_code,
+                auto_detect=auto_detect_language
+            )
 
             # Update progress
             progress_bar.progress(100)

@@ -67,33 +67,59 @@ streamlit run app.py
 
 ```
 doc-quality-check/
-├── app.py                          # Main Streamlit application
-├── config.json                     # Document types, keywords, and settings
-├── requirements.txt                # Python package dependencies
-├── README.md                       # This file (unified documentation)
+├── 📄 Core Files
+│   ├── app.py                          # Main Streamlit application
+│   ├── test_readability.py             # CLI readability test utility
+│   ├── config.json                     # Document types, keywords, and settings
+│   ├── requirements.txt                # Python package dependencies
+│   └── README.md                       # Main documentation
 │
-├── modules/                        # Core detection modules
-│   ├── config_loader.py           # Configuration management
-│   ├── identity_detection.py      # Classification engine
-│   ├── document_segmentation.py   # Multi-document page segmentation
-│   └── visualization.py            # Bounding box visualization
+├── 📚 Documentation (docs/)
+│   ├── README.md                       # Documentation index
+│   ├── LANGUAGE_CONFIGURATION_GUIDE.md # Language setup guide
+│   ├── THRESHOLD_ANALYSIS_REPORT.md    # Threshold analysis
+│   ├── IMPROVEMENTS_SUMMARY.md         # Recent improvements
+│   ├── ARTIFACT_FILTERING.md           # Artifact filtering feature
+│   ├── FULL_TEXT_FEATURE.md            # Full text extraction
+│   └── ITALIAN_ID_ISSUE_ANALYSIS.md    # Italian ID analysis
 │
-├── utils/                          # Utility modules
-│   ├── document_processor.py      # PDF page extraction
-│   ├── content_extraction.py      # OCR text extraction
-│   ├── text_cleaner.py            # Text cleaning and normalization
-│   └── logger.py                  # Logging configuration
+├── 🧪 Tests (tests/)
+│   ├── README.md                       # Tests index
+│   ├── analyze_thresholds.py           # Threshold analysis tests
+│   ├── check_lang.py                   # Language detection tests
+│   ├── test_filter_comparison.py       # Artifact filtering comparison
+│   ├── test_improved_confidence.py     # Confidence calculation tests
+│   └── test_italian_summary.py         # Italian ID tests
 │
-├── checks/                         # Quality assessment modules
-│   ├── clarity_check.py           # Document clarity analysis
-│   └── confidence_check.py        # OCR confidence scoring
+├── 🔧 Modules
+│   ├── modules/                        # Core detection modules
+│   │   ├── config_loader.py           # Configuration management
+│   │   ├── identity_detection.py      # Classification engine
+│   │   ├── document_segmentation.py   # Multi-document segmentation
+│   │   └── visualization.py           # Bounding box visualization
+│   │
+│   ├── utils/                          # Utility modules
+│   │   ├── document_processor.py      # PDF page extraction
+│   │   ├── content_extraction.py      # OCR text extraction
+│   │   ├── text_cleaner.py            # Text cleaning
+│   │   ├── text_filter.py             # Artifact filtering ✨
+│   │   └── logger.py                  # Logging configuration
+│   │
+│   └── checks/                         # Quality assessment
+│       ├── clarity_check.py           # Document clarity analysis
+│       ├── confidence_check.py        # OCR confidence scoring
+│       └── confidence_check_improved.py # Enhanced confidence ✨
 │
-└── dataset/                        # Test data samples
-    ├── big-pdf-but-readable/
-    ├── empty-pdfs/
-    ├── italian_ids/
-    ├── unclear-pdfs/
-    └── valid-pdfs/
+├── 📊 Test Data
+│   ├── dataset/                        # Current test documents
+│   └── dataset-v1/                     # Previous version documents
+│
+├── 🧪 Experiments (experiments/)
+│   ├── README.md                       # Experiments index
+│   └── confidence_check_improved.py    # Enhanced OCR (experimental) ✨
+│
+├── 🗑️ Temporary (temp_debugs/)
+│   └── README.md                       # Temporary files (can delete)
 ```
 
 ---
