@@ -129,5 +129,33 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 
-# History files
+# History files (IDE backups)
 .history/
+
+# Temporary debug files (local development)
+temp_debugs/
+*_results.html
+final_test.html
+italian_ids_*.html
+readability_results_*.html
+
+# Generated reports
+report/
+
+# Experimental code (not production)
+experiments/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+env/
+venv/
